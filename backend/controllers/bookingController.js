@@ -88,3 +88,63 @@ exports.getRevenue = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+exports.updateBooking = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.body;
+        const booking = await Booking.findOne({
+            where: { id: req.params.id, userId: req.user.id },
+            include: [{ model: Car }]
+        });
+
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        if (booking.status !== 'pending') {
+            return res.status(400).json({ message: 'Only pending bookings can be edited' });
+        }
+
+        // Recalculate total amount based on new dates
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+        const pricePerDay = parseFloat(booking.Car.pricePerDay);
+        const newTotal = days * pricePerDay * booking.quantity;
+
+        await booking.update({ startDate, endDate, totalAmount: newTotal });
+
+        // Reload with Car data so the frontend gets the full object
+        const updated = await Booking.findByPk(booking.id, { include: [{ model: Car }] });
+        res.json({ message: 'Booking updated successfully', booking: updated });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.deleteBooking = async (req, res) => {
+    const t = await sequelize.transaction();
+    try {
+        const booking = await Booking.findOne({
+            where: { id: req.params.id, userId: req.user.id }
+        });
+
+        if (!booking) {
+            await t.rollback();
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        // Return stock to car
+        const car = await Car.findByPk(booking.carId);
+        if (car) {
+            await car.update({ stock: car.stock + booking.quantity }, { transaction: t });
+        }
+
+        await booking.destroy({ transaction: t });
+        await t.commit();
+        res.json({ message: 'Booking deleted and stock restored' });
+    } catch (error) {
+        await t.rollback();
+        res.status(500).json({ message: error.message });
+    }
+};
