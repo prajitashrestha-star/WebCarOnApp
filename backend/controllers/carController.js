@@ -1,4 +1,5 @@
 const Car = require('../models/Car');
+const Booking = require('../models/Booking');
 
 exports.getCars = async (req, res) => {
     try {
@@ -41,7 +42,7 @@ exports.updateCar = async (req, res) => {
         const car = await Car.findByPk(req.params.id);
         if (car) {
             await car.update(req.body);
-            res.json(car);
+            res.json({ message: 'Car updated successfully', car });
         } else {
             res.status(404).json({ message: 'Car not found' });
         }
@@ -53,12 +54,20 @@ exports.updateCar = async (req, res) => {
 exports.deleteCar = async (req, res) => {
     try {
         const car = await Car.findByPk(req.params.id);
-        if (car) {
-            await car.destroy();
-            res.json({ message: 'Car removed' });
-        } else {
-            res.status(404).json({ message: 'Car not found' });
+        if (!car) {
+            return res.status(404).json({ message: 'Car not found' });
         }
+
+        // Check if car is already booked by any user
+        const existingBooking = await Booking.findOne({ where: { carId: req.params.id } });
+        if (existingBooking) {
+            return res.status(400).json({
+                message: 'This car cannot be deleted as it has existing bookings. Consider setting stock to 0 instead.'
+            });
+        }
+
+        await car.destroy();
+        res.json({ message: 'Car removed successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
