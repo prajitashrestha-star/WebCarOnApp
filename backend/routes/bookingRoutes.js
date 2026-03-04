@@ -4,13 +4,17 @@ const {
     createBooking,
     getMyBookings,
     getAllBookings,
-    getRevenue
+    getRevenue,
+    updateBooking,
+    deleteBooking
 } = require('../controllers/bookingController');
 const { protect, adminOnly } = require('./authMiddleware');
 
-router.post('/', protect, createBooking);
 router.get('/list', protect, adminOnly, getAllBookings);
 router.get('/my', protect, getMyBookings);
 router.get('/revenue', protect, adminOnly, getRevenue);
+router.post('/', protect, createBooking);
+router.put('/:id', protect, updateBooking);
+router.delete('/:id', protect, deleteBooking);
 
 module.exports = router;
