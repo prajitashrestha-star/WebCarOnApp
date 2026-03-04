@@ -1,34 +1,72 @@
-import { Toaster } from 'react-hot-toast'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Navbar from './components/Navbar';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Profile from './pages/Profile';
+import Bookings from './pages/Bookings';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import './App.css';
+
+const ProtectedRoute = ({ children, adminOnly = false, userOnly = false }) => {
+    const { user, loading } = useAuth();
+    if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-xl">Loading...</div>;
+    if (!user) return <Navigate to="/login" />;
+
+    // Redirect non-admins trying to access admin pages
+    if (adminOnly && user.role !== 'admin') return <Navigate to="/" />;
+
+    // Redirect admins trying to access user-only pages (if specified)
+    if (userOnly && user.role === 'admin') return <Navigate to="/admin" />;
+
+    return children;
+};
 
 function App() {
+    const { user, loading } = useAuth();
+
+    if (loading) {
+        return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-xl">Loading...</div>;
+    }
+
     return (
-        <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4">
-            <Toaster position="top-right" />
-            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-                WebPrajita Project
-            </h1>
-            <p className="text-xl text-slate-300 mb-8">
-                React + Vite + Tailwind CSS + Express + PostgreSQL
-            </p>
+        <Router>
+            <div className="min-h-screen bg-slate-950 flex flex-col">
+                <Toaster position="top-right" />
+                <Navbar />
+                <main className="flex-grow">
+                    <Routes>
+                        {/* Role based root route redirection */}
+                        <Route
+                            path="/"
+                            element={user?.role === 'admin' ? <Navigate to="/admin" /> : <Home />}
+                        />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl w-full">
-                <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700 p-6 rounded-2xl shadow-xl hover:border-blue-500/50 transition-all duration-300 group">
-                    <h2 className="text-2xl font-semibold mb-2 group-hover:text-blue-400">Frontend</h2>
-                    <p className="text-slate-400">React 19, Axios, React Router, Tailwind V4</p>
-                </div>
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
 
-                <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700 p-6 rounded-2xl shadow-xl hover:border-emerald-500/50 transition-all duration-300 group">
-                    <h2 className="text-2xl font-semibold mb-2 group-hover:text-emerald-400">Backend</h2>
-                    <p className="text-slate-400">Node.js, Express, Sequelize, PostgreSQL</p>
-                </div>
+                        {/* User Protected Routes */}
+                        <Route
+                            path="/profile"
+                            element={<ProtectedRoute><Profile /></ProtectedRoute>}
+                        />
+                        <Route
+                            path="/bookings"
+                            element={<ProtectedRoute userOnly={true}><Bookings /></ProtectedRoute>}
+                        />
+
+                        {/* Admin Protected Routes */}
+                        <Route
+                            path="/admin"
+                            element={<ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute>}
+                        />
+                    </Routes>
+                </main>
             </div>
-
-            <div className="mt-12 text-slate-500 text-sm">
-                Happy coding! 🚀
-            </div>
-        </div>
-    )
+        </Router>
+    );
 }
 
-export default App
+export default App;
