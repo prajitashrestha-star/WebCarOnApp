@@ -12,7 +12,7 @@ app.use((req, res, next) => {
 });
 
 // 2. Standard Middleware
-app.use(cors()); // Updated: Added comment to trigger nodemon restart
+app.use(cors()); // Updated: Force restart to ensure routes are fresh
 app.use(express.json());
 
 // 3. Register Routes
