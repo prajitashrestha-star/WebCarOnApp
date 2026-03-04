@@ -5,7 +5,8 @@
     "scripts": {
         "start": "node index.js",
         "dev": "nodemon index.js",
-        "seed": "node seedAdmin.js"
+        "seed": "node seedAdmin.js",
+        "test": "set NODE_ENV=test&& npx jest --forceExit --detectOpenHandles --verbose"
     },
     "dependencies": {
         "bcryptjs": "^3.0.3",
@@ -18,5 +19,9 @@
         "pg": "^8.18.0",
         "pg-hstore": "^2.3.4",
         "sequelize": "^6.37.7"
+    },
+    "devDependencies": {
+        "jest": "^30.2.0",
+        "supertest": "^7.2.2"
     }
 }
